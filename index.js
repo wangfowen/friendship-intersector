@@ -33,10 +33,11 @@
   }
 
   function initOboe(arr, callback) {
+    var SCALAR_E7 = 0.0000001; // Since Google Takeout stores latlngs as integers
     var os = new oboe();
     os.node( 'locations.*', function ( location ) {
-      var SCALAR_E7 = 0.0000001; // Since Google Takeout stores latlngs as integers
-        arr.push( [ location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, location.timestampMs ] );
+      //pre-pend since it's reverse chronological order
+      arr.unshift([location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, parseInt(location.timestampMs, 10)]);
       return oboe.drop;
     }).done(function() {
       callback();
@@ -93,7 +94,7 @@
       $('body').addClass('map-active');
       $done.fadeOut();
       activateControls();
-      viz.init();
+      viz.init('#controls');
     });
 
     function activateControls() {
