@@ -11,7 +11,7 @@ html, body, #map {
 }
 
 body.working {
-	cursor: progress;
+  cursor: progress;
 }
 
 a:hover {
@@ -30,7 +30,7 @@ p {
 }
 
 .hidden {
-	display: none !important;
+  display: none !important;
 }
 
 #forkme img {
@@ -38,42 +38,45 @@ p {
 }
 
 #map {
-	z-index: 0;
+  z-index: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
 }
 
 .container {
-	display: table;
-	position: absolute;
-	height: 100%;
-	width: 100%;
-	z-index: 9999;
+  display: table;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: 9999;
 }
 
 .map-active .container {
-	/* so that clicks go through to the map! */
-	pointer-events: none;
+  /* so that clicks go through to the map! */
+  pointer-events: none;
 }
 
 .content {
-	display: table-cell;
-	vertical-align: middle;
+  display: table-cell;
+  vertical-align: middle;
   padding: 10px 0;
 }
 
 .content-box {
-	margin: 0 auto;
-	width: 80%;
-	min-width: 300px;
-	max-width: 600px;
-	background-color: rgba(255,255,255,0.9);
-	padding: 10px;
-	border-radius: 8px;
+  margin: 0 auto;
+  width: 80%;
+  min-width: 300px;
+  max-width: 600px;
+  background-color: rgba(255,255,255,0.9);
+  padding: 10px;
+  border-radius: 8px;
   max-height: 85vh;
   overflow-y: scroll;
 }
 
 h2 {
-	text-align: center
+  text-align: center
 }
 
 .note {
@@ -87,8 +90,8 @@ h2 {
   padding-top: 4px;
   margin-top: 12px;
   border-top: 1px solid #ccc;
-	font-size: 0.8em;
-	text-align: center;
+  font-size: 0.8em;
+  text-align: center;
 }
 
 .whats-new {
@@ -97,7 +100,7 @@ h2 {
 }
 
 #working {
-	text-align: center;
+  text-align: center;
 }
 
 #controls {

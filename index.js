@@ -1,19 +1,15 @@
-var firstData = [];
-var secondData = [];
-
-( function ( $, L, prettySize ) {
-  var map, heat,
-    heatOptions = {
-      tileOpacity: 1,
-      heatOpacity: 1,
-      radius: 25,
-      blur: 15
-    };
-
-  function status( message ) {
-    $( '#currentStatus' ).text( message );
+(function($, prettySize) {
+  function status(message) {
+    $('#currentStatus').text(message);
   }
 
+  mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJudWJlciIsImEiOiJjam1wa2h1MzExZ2hxM3ByMmxqdmVpeDcwIn0.fvwCX7mTidDf1UK5eFImyQ';
+  var viz = new Viz(new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v10',
+    center: [0, 0],
+    zoom: 0.5
+  }));
   var files = [null, null];
 
   function uploadFiles(file, idx) {
@@ -27,15 +23,7 @@ var secondData = [];
   // Start at the beginning
   stageOne();
 
-  function stageOne () {
-    // Initialize the map
-    map = L.map( 'map' ).setView( [0,0], 2 );
-    L.tileLayer( 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: 'location-history-visualizer, which this is based off of, is available <a href="https://github.com/theopolisme/location-history-visualizer">on GitHub</a>. Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors.',
-      maxZoom: 18,
-      minZoom: 2
-    } ).addTo( map );
-
+  function stageOne() {
     $( '#file-1' ).change( function () {
       uploadFiles(this.files[0], 0);
     } );
@@ -51,17 +39,13 @@ var secondData = [];
         arr.push( [ location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, location.timestampMs ] );
       return oboe.drop;
     }).done(function() {
-      //heat._latlngs = latlngs;
-      //heat.redraw();
       callback();
     });
 
     return os;
   }
 
-  function stageTwo ( files ) {
-    heat = L.heatLayer( [], heatOptions ).addTo( map );
-
+  function stageTwo(files) {
     try {
       if (!(/\.json$/i.test(files[0].name)) || !(/\.json$/i.test(files[1].name))) {
         status( 'Something went wrong generating your map. Ensure you\'re uploading a Google Takeout JSON file that contains location data and try again, or create an issue on GitHub if the problem persists. ( error: ' + ex.message + ' )' );
@@ -73,97 +57,54 @@ var secondData = [];
     }
 
     // First, change tabs
-    $( 'body' ).addClass( 'working' );
-    $( '#intro' ).addClass( 'hidden' );
-    $( '#working' ).removeClass( 'hidden' );
-
+    $('body').addClass('working');
+    $('#intro').addClass('hidden');
+    $('#working').removeClass('hidden');
 
     var fileSizeOne = prettySize(files[0].size);
     var fileSizeTwo = prettySize(files[1].size);
 
     status( 'Preparing to import files ( ' + fileSizeOne + ' and ' + fileSizeTwo + ' )...' );
 
+    var firstData = [];
+    var secondData = [];
     parseJSONFile(files[0], initOboe(firstData, function() {
       status('Uploading second...');
       parseJSONFile(files[1], initOboe(secondData, function() {
         status('Generating map...');
-        stageThree(  /* numberProcessed */ firstData.length + secondData.length );
+        viz.addData(firstData, secondData);
+        stageThree(firstData.length + secondData.length);
       }));
     }));
   }
 
-  function stageThree ( numberProcessed ) {
-    // Google Analytics event - heatmap render
-    ga('send', 'event', 'Heatmap', 'render', undefined, numberProcessed);
-
-    var $done = $( '#done' );
+  function stageThree(numberProcessed) {
+    var $done = $('#done');
 
     // Change tabs :D
-    $( 'body' ).removeClass( 'working' );
-    $( '#working' ).addClass( 'hidden' );
-    $done.removeClass( 'hidden' );
+    $('body').removeClass('working');
+    $('#working').addClass('hidden');
+    $done.removeClass('hidden');
 
     // Update count
-    $( '#numberProcessed' ).text( numberProcessed.toLocaleString() );
+    $('#numberProcessed').text(numberProcessed.toLocaleString());
 
-    $( '#launch' ).click(function () {
-      /*
-      $( 'body' ).addClass( 'map-active' );
+    $('#launch').click(function() {
+      $('body').addClass('map-active');
       $done.fadeOut();
       activateControls();
-      */
-      console.log(firstData);
-      console.log(secondData);
+      viz.init();
     });
 
-    function activateControls () {
-      var $tileLayer = $( '.leaflet-tile-pane' ),
-        $heatmapLayer = $( '.leaflet-heatmap-layer' ),
-        originalHeatOptions = $.extend( {}, heatOptions ); // for reset
-
-      // Update values of the dom elements
-      function updateInputs () {
-        var option;
-        for ( option in heatOptions ) {
-          if ( heatOptions.hasOwnProperty( option ) ) {
-            document.getElementById( option ).value = heatOptions[option];
-          }
-        }
-      }
-
-      updateInputs();
-
-      $( '.control' ).change( function () {
-        switch ( this.id ) {
-          case 'tileOpacity':
-            $tileLayer.css( 'opacity', this.value );
-            break;
-          case 'heatOpacity':
-            $heatmapLayer.css( 'opacity', this.value );
-            break;
-          default:
-            heatOptions[ this.id ] = Number( this.value );
-            heat.setOptions( heatOptions );
-            break;
-        }
-      } );
-
-      $( '#reset' ).click( function () {
-        $.extend( heatOptions, originalHeatOptions );
-        updateInputs();
-        heat.setOptions( heatOptions );
-        // Reset opacity too
-        $heatmapLayer.css( 'opacity', originalHeatOptions.heatOpacity );
-        $tileLayer.css( 'opacity', originalHeatOptions.tileOpacity );
-      } );
+    function activateControls() {
+      //TODO: listeners for controls
     }
   }
 
   /*
   Break file into chunks and emit 'data' to oboe instance
   */
-
-  function parseJSONFile( file, oboeInstance ) {
+  function parseJSONFile(file, oboeInstance) {
     var fileSize = file.size;
     var prettyFileSize = prettySize(fileSize);
     var chunkSize = 512 * 1024; // bytes
@@ -199,5 +140,4 @@ var secondData = [];
     // now let's start the read with the first block
     chunkReaderBlock( offset, chunkSize, file );
   }
-
-}( jQuery, L, prettySize ) );
+}(jQuery, prettySize));
