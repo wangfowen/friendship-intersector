@@ -39,7 +39,7 @@ var viz;
     var os = new oboe();
     os.node( 'locations.*', function ( location ) {
       //pre-pend since it's reverse chronological order
-      if (location.latitudeE7 !== undefined) {
+      if (location.latitudeE7 !== undefined && location.latitudeE7 !== null) {
         arr.unshift([location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, parseInt(location.timestampMs, 10)]);
       }
       return oboe.drop;
@@ -103,18 +103,35 @@ var viz;
 
     var $controls = $('#controls');
     var open = false;
+    var first = true;
+    var second = true;
+
+    function toggleZoom() {
+      if (first && second) {
+        viz.watchBoth();
+      } else if (first) {
+        viz.watchFirst();
+      } else {
+        viz.watchSecond();
+      }
+    }
+
     function activateControls() {
       $('#start').click(function(e) {
-        e.preventDefault();
-        e.stopPropagation();
         viz.toggleOn();
       });
 
       $('#frame').change(function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
         viz.adjustFrameRate(this.value);
+      });
+
+      $('#first').change(function() {
+        first = $(this).is(":checked");
+        toggleZoom();
+      });
+      $('#second').change(function() {
+        second = $(this).is(":checked");
+        toggleZoom();
       });
     }
   }

@@ -16,6 +16,7 @@ class Viz {
       points: [],
       name: "point-2"
     };
+    this.watch = [this.first, this.second];
 
     this.options = {
       tailTrail: 8,
@@ -195,25 +196,16 @@ class Viz {
     this.options.frameRate = rate;
   }
 
-  locatePoint(set) {
-    const combined = set.lineFragments
-      .concat(set.line.features[0].geometry.coordinates);
+  watchBoth() {
+    this.watch = [this.first, this.second];
+  }
 
-    let mapBounds = combined.reduce(function(b, coord) {
-      return b.extend(coord);
-    }, new mapboxgl.LngLatBounds(combined[0], combined[0]));
+  watchFirst() {
+    this.watch = [this.first];
+  }
 
-    //fast jump to fit the page
-    if (mapBounds !== this.mapBounds) {
-      this.map.fitBounds(mapBounds, {
-        padding: 20,
-        easing: (t) => {
-          return t + 0.2;
-        }
-      });
-
-      this.mapBounds = mapBounds;
-    }
+  watchSecond() {
+    this.watch = [this.second];
   }
 
   progressAnimation(ref) {
@@ -224,10 +216,13 @@ class Viz {
     $(ref.controlsId).find('#time').html(ref.formattedTime());
 
     if (firstChanged || secondChanged) {
-      const combined = ref.first.lineFragments
-        .concat(ref.second.lineFragments)
-        .concat(ref.first.line.features[0].geometry.coordinates)
-        .concat(ref.second.line.features[0].geometry.coordinates);
+      let combined = [];
+      for (let i = 0; i < ref.watch.length; i++) {
+        const set = ref.watch[i];
+        combined = combined
+          .concat(set.lineFragments)
+          .concat(set.line.features[0].geometry.coordinates);
+      }
 
       let mapBounds = combined.reduce(function(b, coord) {
         return b.extend(coord);
