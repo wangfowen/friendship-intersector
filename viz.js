@@ -4,21 +4,30 @@ class Viz {
 
     this.first = {
       progress: 0,
-      name: "line-1-animation"
+      lineProgress: 0,
+      pointProgress: 0,
+      points: [],
+      name: "point-1"
     };
     this.second = {
       progress: 0,
-      name: "line-2-animation"
+      lineProgress: 0,
+      pointProgress: 0,
+      points: [],
+      name: "point-2"
     };
 
     this.options = {
-      tailTrail: 25
+      tailTrail: 8,
+      playing: true,
+      frameRate: 3
     };
 
-    this.animation; // to store and cancel the animation
-    this.bounds;
-    this.time;
     this.controlsId;
+
+    this.animation; // to store and cancel the animation
+    this.mapBounds;
+    this.time;
   }
 
   latlng(data) {
@@ -44,9 +53,43 @@ class Viz {
     this.setTime();
   }
 
-  initLine(data, name, color) {
-    var firstCoord = this.latlng(data[0]);
-    var secondCoord = this.latlng(data[1]);
+  initPoint(data, name, color) {
+    var coord = this.latlng(data[0]);
+
+    var point = {
+      "type": "FeatureCollection",
+      "features": [{
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            coord,
+            coord
+          ]
+        }
+      }]
+    };
+
+    this.map.addLayer({
+      'id': name,
+      'type': 'line',
+      'source': {
+        'type': 'geojson',
+        'data': point
+      },
+      'paint': {
+        'line-width': 5,
+        'line-color': `#${color}`,
+        'line-opacity': .8
+      }
+    });
+
+    return point;
+  }
+
+  initLine(data) {
+    var coord = this.latlng(data[0]);
 
     var line = {
       "type": "FeatureCollection",
@@ -55,39 +98,32 @@ class Viz {
         "geometry": {
           "type": "LineString",
           "coordinates": [
-            firstCoord,
-            secondCoord
+            coord,
+            coord
           ]
         }
       }]
     };
 
-    // add the line which will be modified in the animation
-    this.map.addLayer({
-      'id': name,
-      'type': 'line',
-      'source': {
-        'type': 'geojson',
-        'data': line
-      },
-      'layout': {
-        'line-cap': 'round',
-        'line-join': 'round'
-      },
-      'paint': {
-        'line-color': `#${color}`,
-        'line-width': 5,
-        'line-opacity': .8
-      }
-    });
-
     return line;
+  }
+
+  pointName(name, i) {
+    return `${name}-${i}`;
   }
 
   init(controlsId) {
     const c = this;
-    c.first.line = c.initLine(c.first.data, c.first.name, "ed6498");
-    c.second.line = c.initLine(c.second.data, c.second.name, "000");
+    //initialize initial lines to follow
+    c.first.line = c.initLine(c.first.data);
+    c.second.line = c.initLine(c.second.data);
+
+    //initialize points on map
+    for (let i = 0; i < c.options.tailTrail; i++) {
+      c.first.points.push(c.initPoint(c.first.data, c.pointName(c.first.name, i), "ed6498"));
+      //TODO: change this color to be something more pleasant
+      c.second.points.push(c.initPoint(c.second.data, c.pointName(c.second.name, i), "000"));
+    }
 
     c.controlsId = controlsId;
 
@@ -95,58 +131,99 @@ class Viz {
   }
 
   pushNextCoord(set) {
+    let changed = false;
+    //continue along as long as this coord's timestamp is not ahead
     if (set.progress < set.data.length - 1 && this.currTime(set) <= this.time) {
-      set.progress = set.progress + 1;
-      const next = this.currLatLng(set);
-      const coords = set.line.features[0].geometry.coordinates;
-      coords.push(next);
-      if (set.progress > this.options.tailTrail) {
+      //progress to next line if this one is done
+      if (set.lineProgress == 0) {
+        set.progress = set.progress + 1;
+        const next = this.currLatLng(set);
+        const coords = set.line.features[0].geometry.coordinates;
         coords.shift();
+        coords.push(next);
+
+        //segment line
+        const distance = turf.lineDistance(set.line.features[0], 'kilometers');
+        const lineFragments = [];
+        for (let i = 0; i < distance; i += distance / this.options.frameRate) {
+          const fragment = turf.along(set.line.features[0], i, 'kilometers').geometry.coordinates;
+          if (set.prevPoint === undefined) {
+            //push first ever fragment if none exists
+            set.prevPoint = fragment;
+          }
+          lineFragments.push(fragment);
+        }
+        set.lineFragments = lineFragments;
+        changed = true;
       }
-      this.map.getSource(set.name).setData(set.line);
-      return coords;
-    } else {
-      return null;
+
+      //time to do next line
+      const point = set.points[set.pointProgress];
+      const currPoint = set.lineFragments[set.lineProgress];
+      point.features[0].geometry.coordinates = [
+        set.prevPoint,
+        currPoint
+      ];
+      set.prevPoint = currPoint;
+      set.pointProgress = (set.pointProgress + 1) % set.points.length;
+      set.lineProgress = (set.lineProgress + 1) % set.lineFragments.length;
+
+      for (let i = 0; i < set.points.length; i++) {
+        this.map.getSource(this.pointName(set.name, i)).setData(set.points[i]);
+      }
     }
+
+    return changed;
   }
 
   formattedTime() {
     return moment(this.time).format('lll');
   }
 
-  animate(ref) {
-    const firstCoords = ref.pushNextCoord(ref.first);
-    const secondCoords = ref.pushNextCoord(ref.second);
-    if (firstCoords !== null || secondCoords !== null) {
-      ref.setTime();
-      $(ref.controlsId).find('#time').html(ref.formattedTime());
+  toggleOn() {
+    this.options.playing = !this.options.playing;
+  }
 
-      let combined;
-      if (firstCoords === null) {
-        combined = secondCoords;
-      } else if (secondCoords === null) {
-        combined = firstCoords;
-      } else {
-        combined = firstCoords.concat(secondCoords);
-      }
+  adjustFrameRate(rate) {
+    this.options.frameRate = rate;
+  }
 
-      let bounds = combined.reduce(function(b, coord) {
+  progressAnimation(ref) {
+    const firstChanged = ref.pushNextCoord(ref.first);
+    const secondChanged = ref.pushNextCoord(ref.second);
+
+    ref.setTime();
+    $(ref.controlsId).find('#time').html(ref.formattedTime());
+
+    if (firstChanged || secondChanged) {
+      const combined = ref.first.lineFragments
+        .concat(ref.second.lineFragments)
+        .concat(ref.first.line.features[0].geometry.coordinates)
+        .concat(ref.second.line.features[0].geometry.coordinates);
+
+      let mapBounds = combined.reduce(function(b, coord) {
         return b.extend(coord);
       }, new mapboxgl.LngLatBounds(combined[0], combined[0]));
 
       //fast jump to fit the page
-      if (bounds !== ref.bounds) {
-        ref.map.fitBounds(bounds, {
+      if (mapBounds !== ref.mapBounds) {
+        ref.map.fitBounds(mapBounds, {
           padding: 20,
           easing: (t) => {
-            return t + 0.1;
+            return t + 0.2;
           }
         });
 
-        ref.bounds = bounds;
+        ref.mapBounds = mapBounds;
       }
-
-      ref.animation = requestAnimationFrame(() => {ref.animate(ref)});
     }
+  }
+
+  animate(ref) {
+    if (ref.options.playing) {
+      ref.progressAnimation(ref);
+    }
+
+    ref.animation = requestAnimationFrame(() => {ref.animate(ref)});
   }
 }

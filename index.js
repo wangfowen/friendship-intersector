@@ -1,10 +1,12 @@
+var viz;
+
 (function($, prettySize) {
   function status(message) {
     $('#currentStatus').text(message);
   }
 
   mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJudWJlciIsImEiOiJjam1wa2h1MzExZ2hxM3ByMmxqdmVpeDcwIn0.fvwCX7mTidDf1UK5eFImyQ';
-  var viz = new Viz(new mapboxgl.Map({
+  viz = new Viz(new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v10',
     center: [0, 0],
@@ -97,8 +99,21 @@
       viz.init('#controls');
     });
 
+    var $controls = $('#controls');
+    var open = false;
     function activateControls() {
-      //TODO: listeners for controls
+      $('#start').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        viz.toggleOn();
+      });
+
+      $('#frame').change(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        viz.adjustFrameRate(this.value);
+      });
     }
   }
 
