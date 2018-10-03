@@ -133,7 +133,10 @@ class Viz {
   pushNextCoord(set) {
     let changed = false;
     //continue along as long as this coord's timestamp is not ahead
-    if (set.progress < set.data.length - 1 && this.currTime(set) <= this.time) {
+    if (set.progress < set.data.length - 1 && (
+      this.currTime(set) <= this.time ||
+      set.progress == 0
+    )) {
       //progress to next line if this one is done
       if (set.lineProgress == 0) {
         set.progress = set.progress + 1;
@@ -166,7 +169,11 @@ class Viz {
       ];
       set.prevPoint = currPoint;
       set.pointProgress = (set.pointProgress + 1) % set.points.length;
-      set.lineProgress = (set.lineProgress + 1) % set.lineFragments.length;
+      if (set.lineFragments.length > 0) {
+        set.lineProgress = (set.lineProgress + 1) % set.lineFragments.length;
+      } else {
+        set.lineProgress = 0;
+      }
 
       for (let i = 0; i < set.points.length; i++) {
         this.map.getSource(this.pointName(set.name, i)).setData(set.points[i]);
@@ -186,6 +193,27 @@ class Viz {
 
   adjustFrameRate(rate) {
     this.options.frameRate = rate;
+  }
+
+  locatePoint(set) {
+    const combined = set.lineFragments
+      .concat(set.line.features[0].geometry.coordinates);
+
+    let mapBounds = combined.reduce(function(b, coord) {
+      return b.extend(coord);
+    }, new mapboxgl.LngLatBounds(combined[0], combined[0]));
+
+    //fast jump to fit the page
+    if (mapBounds !== this.mapBounds) {
+      this.map.fitBounds(mapBounds, {
+        padding: 20,
+        easing: (t) => {
+          return t + 0.2;
+        }
+      });
+
+      this.mapBounds = mapBounds;
+    }
   }
 
   progressAnimation(ref) {

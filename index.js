@@ -39,7 +39,9 @@ var viz;
     var os = new oboe();
     os.node( 'locations.*', function ( location ) {
       //pre-pend since it's reverse chronological order
-      arr.unshift([location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, parseInt(location.timestampMs, 10)]);
+      if (location.latitudeE7 !== undefined) {
+        arr.unshift([location.latitudeE7 * SCALAR_E7, location.longitudeE7 * SCALAR_E7, parseInt(location.timestampMs, 10)]);
+      }
       return oboe.drop;
     }).done(function() {
       callback();
