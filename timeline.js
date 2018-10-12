@@ -57,15 +57,16 @@ class Timeline {
 
     this.days.forEach((data) => {
       if (data.first) {
-        $timeline.append(`<span data-which="first" data-index="${data.first}"style="top:30%;background:#ed6498;left:${data.left}px "></span>`);
+        $timeline.append(`<span data-left="${data.left}" data-first="${data.first}" data-second="${data.second}"style="top:30%;background:#ed6498;left:${data.left}px "></span>`);
       }
       if (data.second) {
-        $timeline.append(`<span data-which="second" data-index="${data.second}"style="top:60%;background:#000;left:${data.left}px"></span>`);
+        $timeline.append(`<span data-left="${data.left}" data-first="${data.first}" data-second="${data.second}"style="top:60%;background:#000;left:${data.left}px"></span>`);
       }
     });
 
+    //TODO: should instead be progress of viz to be able to jump there
     $(`${this.timelineId} span`).click((e) => {
-      console.log($(e.target).attr("data-index"));
+      console.log($(e.target).attr("data-left"));
     });
   }
 
@@ -141,7 +142,7 @@ class Timeline {
 
     let time = ref.newTime(ref.first.data[0], ref.second.data[0]);
     let day = parseInt(moment(time).format("YYDDD"), 10);
-    const firstDay = day;
+    let dayCounter = 0;
     const ms = ref.options.minutesGrouping * 60 * 1000;
 
     let boundCounter = 0;
@@ -209,8 +210,9 @@ class Timeline {
       time = ref.newTime(firstData, secondData);
       const newDay = parseInt(moment(time).format("YYDDD"), 10);
       if (newDay > day) {
-        const dateDiff = newDay - firstDay;
-        ref.days.push(ref.daysObj(dateDiff, ref.first.currIdx, ref.second.currIdx, firstData === secondData));
+        dayCounter += 1;
+        //TODO: intersection code is wrong
+        ref.days.push(ref.daysObj(dayCounter, ref.first.currIdx, ref.second.currIdx, firstData === secondData));
         day = newDay;
       }
     }
