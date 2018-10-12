@@ -91,11 +91,11 @@ class Viz {
     return `${name}-${i}`;
   }
 
-  init(controlsId) {
+  init(controlsId, timelineId) {
     const c = this;
 
     c.controlsId = controlsId;
-    c.timeline.init(c, controlsId);
+    c.timeline.init(c, controlsId, timelineId);
 
     //initialize points on map
     const data = c.timeline.getInitData();
@@ -149,11 +149,9 @@ class Viz {
 
     const bounds = ref.getBounds(data);
     if (ref.mapBounds != bounds) {
-      console.log(ref.mapBounds);
-      console.log(bounds);
       ref.map.fitBounds(bounds, {
         duration: 500,
-        padding: 20,
+        padding: 50,
         easing: (t) => {
           //easeInOutQuad
           return t<.5 ? 2*t*t : -1+(4-2*t)*t

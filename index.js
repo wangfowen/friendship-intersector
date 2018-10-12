@@ -100,7 +100,7 @@ var timeline;
       $('body').addClass('map-active');
       $done.fadeOut();
       activateControls();
-      viz.init('#controls');
+      viz.init('#controls', '#timeline');
     });
 
     var $controls = $('#controls');

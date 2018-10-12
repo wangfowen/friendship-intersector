@@ -15,6 +15,7 @@ class Timeline {
       currIdx: 0
     };
     this.processedData = [];
+    this.days = [];
 
     this.options = {
       segments: 4,
@@ -25,6 +26,7 @@ class Timeline {
     this.line;
 
     this.controlsId;
+    this.timelineId;
     this.viz;
   }
 
@@ -42,9 +44,29 @@ class Timeline {
     return data[2];
   }
 
-  init(viz, controlsId) {
+  init(viz, controlsId, timelineId) {
     this.viz = viz;
     this.controlsId = controlsId;
+    this.timelineId = timelineId;
+
+    this.populateTimeline();
+  }
+
+  populateTimeline() {
+    const $timeline = $(this.timelineId);
+
+    this.days.forEach((data) => {
+      if (data.first) {
+        $timeline.append(`<span data-which="first" data-index="${data.first}"style="top:30%;background:#ed6498;left:${data.left}px "></span>`);
+      }
+      if (data.second) {
+        $timeline.append(`<span data-which="second" data-index="${data.second}"style="top:60%;background:#000;left:${data.left}px"></span>`);
+      }
+    });
+
+    $(`${this.timelineId} span`).click((e) => {
+      console.log($(e.target).attr("data-index"));
+    });
   }
 
   initLine() {
@@ -82,12 +104,18 @@ class Timeline {
   }
 
   newTime(firstData, secondData) {
-    return Math.min(this.time(firstData), this.time(secondData))
+    if (firstData && secondData) {
+      return Math.min(this.time(firstData), this.time(secondData))
+    } else if (firstData) {
+      return this.time(firstData);
+    } else {
+      return this.time(secondData);
+    }
   }
 
   setPoint(set, time, ms) {
     const ref = this;
-    if (time + ms >= ref.time(set.data[set.currIdx])) {
+    if (set.data[set.currIdx] && time + ms >= ref.time(set.data[set.currIdx])) {
       set.prevPoint = set.currPoint;
       set.currPoint = ref.latlng(set.data[set.currIdx]);
       set.currIdx += 1;
@@ -112,6 +140,8 @@ class Timeline {
     ref.initLine();
 
     let time = ref.newTime(ref.first.data[0], ref.second.data[0]);
+    let day = parseInt(moment(time).format("YYDDD"), 10);
+    const firstDay = day;
     const ms = ref.options.minutesGrouping * 60 * 1000;
 
     let boundCounter = 0;
@@ -174,7 +204,15 @@ class Timeline {
         ));
       }
 
-      time = ref.newTime(ref.first.data[ref.first.currIdx], ref.second.data[ref.second.currIdx]);
+      const firstData = ref.first.data[ref.first.currIdx];
+      const secondData = ref.second.data[ref.second.currIdx];
+      time = ref.newTime(firstData, secondData);
+      const newDay = parseInt(moment(time).format("YYDDD"), 10);
+      if (newDay > day) {
+        const dateDiff = newDay - firstDay;
+        ref.days.push(ref.daysObj(dateDiff, ref.first.currIdx, ref.second.currIdx, firstData === secondData));
+        day = newDay;
+      }
     }
   }
 
@@ -186,6 +224,15 @@ class Timeline {
       secondBounds: secondBounds,
       bothBounds: bothBounds,
       time: time
+    };
+  }
+
+  daysObj(dateDiff, firstIdx, secondIdx, intersection) {
+    return {
+      left: dateDiff * 20,
+      first: firstIdx,
+      second: secondIdx,
+      intersection: intersection
     };
   }
 
