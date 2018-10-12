@@ -1,62 +1,60 @@
 class Viz {
-  constructor(map) {
+  constructor(map, timeline) {
     this.map = map;
+    this.timeline = timeline;
 
     this.first = {
-      progress: 0,
-      lineProgress: 0,
-      pointProgress: 0,
       points: [],
+      prevCoord: [],
+      pointProgress: 0,
       name: "point-1"
     };
     this.second = {
-      progress: 0,
-      lineProgress: 0,
-      pointProgress: 0,
       points: [],
+      prevCoord: [],
+      pointProgress: 0,
       name: "point-2"
     };
-    this.watch = [this.first, this.second];
+
+    this.watch = "both";
 
     this.options = {
       tailTrail: 8,
-      playing: true,
-      frameRate: 3
-    };
+      frameRate: 1,
+      playing: true
+    }
 
     this.controlsId;
 
     this.animation; // to store and cancel the animation
+
     this.mapBounds;
     this.time;
+    this.progress = 0;
   }
 
-  latlng(data) {
-    return [data[1], data[0]];
+  adjustFrameRate(rate) {
+    this.options.frameRate = rate;
   }
 
-  currLatLng(set) {
-    return this.latlng(set.data[set.progress]);
+  setTime(data) {
+    this.time = data.time;
+    const formattedTime = moment(this.time).format('lll');
+    $(this.controlsId).find('#time').html(formattedTime);
   }
 
-  currTime(set) {
-    return set.data[set.progress][2];
+  getBounds(data) {
+    switch (this.watch) {
+      case "first":
+        return data.firstBounds;
+      case "second":
+        return data.secondBounds;
+      default:
+        return data.bothBounds;
+    }
   }
 
-  setTime() {
-    const c = this;
-    c.time = Math.min(c.currTime(c.first), c.currTime(c.second));
-  }
-
-  addData(firstData, secondData) {
-    this.first.data = firstData;
-    this.second.data = secondData;
-    this.setTime();
-  }
-
-  initPoint(data, name, color) {
-    var coord = this.latlng(data[0]);
-
+  initPoint(coord, name, color) {
     var point = {
       "type": "FeatureCollection",
       "features": [{
@@ -89,157 +87,82 @@ class Viz {
     return point;
   }
 
-  initLine(data) {
-    var coord = this.latlng(data[0]);
-
-    var line = {
-      "type": "FeatureCollection",
-      "features": [{
-        "type": "Feature",
-        "geometry": {
-          "type": "LineString",
-          "coordinates": [
-            coord,
-            coord
-          ]
-        }
-      }]
-    };
-
-    return line;
-  }
-
   pointName(name, i) {
     return `${name}-${i}`;
   }
 
   init(controlsId) {
     const c = this;
-    //initialize initial lines to follow
-    c.first.line = c.initLine(c.first.data);
-    c.second.line = c.initLine(c.second.data);
-
-    //initialize points on map
-    for (let i = 0; i < c.options.tailTrail; i++) {
-      c.first.points.push(c.initPoint(c.first.data, c.pointName(c.first.name, i), "ed6498"));
-      //TODO: change this color to be something more pleasant
-      c.second.points.push(c.initPoint(c.second.data, c.pointName(c.second.name, i), "000"));
-    }
 
     c.controlsId = controlsId;
+    c.timeline.init(c, controlsId);
 
-    c.animate(c);
-  }
-
-  pushNextCoord(set) {
-    let changed = false;
-    //continue along as long as this coord's timestamp is not ahead
-    if (set.progress < set.data.length - 1 && (
-      this.currTime(set) <= this.time ||
-      set.progress == 0
-    )) {
-      //progress to next line if this one is done
-      if (set.lineProgress == 0) {
-        set.progress = set.progress + 1;
-        const next = this.currLatLng(set);
-        const coords = set.line.features[0].geometry.coordinates;
-        coords.shift();
-        coords.push(next);
-
-        //segment line
-        const distance = turf.lineDistance(set.line.features[0], 'kilometers');
-        const lineFragments = [];
-        for (let i = 0; i < distance; i += distance / this.options.frameRate) {
-          const fragment = turf.along(set.line.features[0], i, 'kilometers').geometry.coordinates;
-          if (set.prevPoint === undefined) {
-            //push first ever fragment if none exists
-            set.prevPoint = fragment;
-          }
-          lineFragments.push(fragment);
-        }
-        set.lineFragments = lineFragments;
-        changed = true;
-      }
-
-      //time to do next line
-      const point = set.points[set.pointProgress];
-      const currPoint = set.lineFragments[set.lineProgress];
-      point.features[0].geometry.coordinates = [
-        set.prevPoint,
-        currPoint
-      ];
-      set.prevPoint = currPoint;
-      set.pointProgress = (set.pointProgress + 1) % set.points.length;
-      if (set.lineFragments.length > 0) {
-        set.lineProgress = (set.lineProgress + 1) % set.lineFragments.length;
-      } else {
-        set.lineProgress = 0;
-      }
-
-      for (let i = 0; i < set.points.length; i++) {
-        this.map.getSource(this.pointName(set.name, i)).setData(set.points[i]);
-      }
+    //initialize points on map
+    const data = c.timeline.getInitData();
+    for (let i = 0; i < c.options.tailTrail; i++) {
+      c.first.points.push(c.initPoint(data.first, c.pointName(c.first.name, i), "ed6498"));
+      //TODO: change this color to be something more pleasant
+      c.second.points.push(c.initPoint(data.second, c.pointName(c.second.name, i), "000"));
     }
 
-    return changed;
-  }
+    c.first.prevCoord = data.first;
+    c.second.prevCoord = data.second;
 
-  formattedTime() {
-    return moment(this.time).format('lll');
+    c.animate(c);
   }
 
   toggleOn() {
     this.options.playing = !this.options.playing;
   }
 
-  adjustFrameRate(rate) {
-    this.options.frameRate = rate;
-  }
-
   watchBoth() {
-    this.watch = [this.first, this.second];
+    this.watch = "both";
   }
 
   watchFirst() {
-    this.watch = [this.first];
+    this.watch = "first";
   }
 
   watchSecond() {
-    this.watch = [this.second];
+    this.watch = "second";
+  }
+
+  repaintPoint(coord, set) {
+    if (coord) {
+      const point = set.points[set.pointProgress];
+
+      point.features[0].geometry.coordinates = [set.prevCoord, coord];
+      this.map.getSource(this.pointName(set.name, set.pointProgress)).setData(set.points[set.pointProgress]);
+
+      set.pointProgress = (set.pointProgress + 1) % set.points.length;
+      set.prevCoord = coord;
+    }
   }
 
   progressAnimation(ref) {
-    const firstChanged = ref.pushNextCoord(ref.first);
-    const secondChanged = ref.pushNextCoord(ref.second);
+    const data = ref.timeline.getData(ref.progress);
 
-    ref.setTime();
-    $(ref.controlsId).find('#time').html(ref.formattedTime());
+    ref.setTime(data);
 
-    if (firstChanged || secondChanged) {
-      let combined = [];
-      for (let i = 0; i < ref.watch.length; i++) {
-        const set = ref.watch[i];
-        combined = combined
-          .concat(set.lineFragments)
-          .concat(set.line.features[0].geometry.coordinates);
-      }
+    ref.repaintPoint(data.first, ref.first);
+    ref.repaintPoint(data.second, ref.second);
 
-      let mapBounds = combined.reduce(function(b, coord) {
-        return b.extend(coord);
-      }, new mapboxgl.LngLatBounds(combined[0], combined[0]));
-
-      //fast jump to fit the page
-      if (mapBounds !== ref.mapBounds) {
-        ref.map.fitBounds(mapBounds, {
-          padding: 20,
-          easing: (t) => {
-            return t + 0.2;
-          }
-        });
-
-        ref.mapBounds = mapBounds;
-      }
+    const bounds = ref.getBounds(data);
+    if (ref.mapBounds != bounds) {
+      console.log(ref.mapBounds);
+      console.log(bounds);
+      ref.map.fitBounds(bounds, {
+        duration: 500,
+        padding: 20,
+        easing: (t) => {
+          //easeInOutQuad
+          return t<.5 ? 2*t*t : -1+(4-2*t)*t
+        }
+      });
+      ref.mapBounds = bounds;
     }
+
+    ref.progress += 1;
   }
 
   animate(ref) {

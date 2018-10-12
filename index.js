@@ -1,4 +1,5 @@
 var viz;
+var timeline;
 
 (function($, prettySize) {
   function status(message) {
@@ -6,12 +7,13 @@ var viz;
   }
 
   mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJudWJlciIsImEiOiJjam1wa2h1MzExZ2hxM3ByMmxqdmVpeDcwIn0.fvwCX7mTidDf1UK5eFImyQ';
+  timeline = new Timeline();
   viz = new Viz(new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v10',
     center: [0, 0],
     zoom: 0.5
-  }));
+  }), timeline);
   var files = [null, null];
 
   function uploadFiles(file, idx) {
@@ -77,7 +79,7 @@ var viz;
       status('Uploading second...');
       parseJSONFile(files[1], initOboe(secondData, function() {
         status('Generating map...');
-        viz.addData(firstData, secondData);
+        timeline.addData(firstData, secondData);
         stageThree(firstData.length + secondData.length);
       }));
     }));
