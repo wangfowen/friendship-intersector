@@ -74,12 +74,15 @@ class Timeline {
       }
     });
 
-    $(`${ref.timelineId} span`).click((e) => {
+    const $spans = $(`${ref.timelineId} span`);
+    $spans.click((e) => {
       const index = parseInt($(e.target).attr("data-index"), 10);
       const dayCounter = parseInt($(e.target).attr("data-day"), 10);
       ref.viz.progress = index;
       ref.viz.repaintLine(dayCounter + 1);
     });
+
+    $timeline.width($spans.last().offset().left + 30);
   }
 
   initLine() {
@@ -218,11 +221,12 @@ class Timeline {
         ));
       }
 
-      //TODO: is it passing in null in places where it should be null?
-      const firstData = ref.first.data[ref.first.currIdx];
-      const secondData = ref.second.data[ref.second.currIdx];
+      //benchmarks for actual timeline gui
+      //TODO: something is wrong here -- showing intersects when no points showing up for day
+      //and there are actually points on times it says there's none
+      const firstData = firstSegments[0];
+      const secondData = secondSegments[0];
       intersectSinceLast = intersectSinceLast || ref.didIntersect(firstData, secondData);
-      time = ref.newTime(firstData, secondData);
       const newDay = parseInt(moment(time).format("YYDDD"), 10);
       if (newDay > day) {
         dayCounter += 1;
@@ -237,6 +241,8 @@ class Timeline {
         day = newDay;
         intersectSinceLast = false;
       }
+
+      time = ref.newTime(ref.first.data[ref.first.currIdx], ref.second.data[ref.second.currIdx]);
     }
   }
 

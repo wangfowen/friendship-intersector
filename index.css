@@ -58,6 +58,10 @@ p {
   overflow: scroll;
 }
 
+#timeline {
+ height: 100%;
+}
+
 #timeline span {
   width: 10px;
   height: 10px;
@@ -73,17 +77,19 @@ p {
   width: 80px;
 }
 
+#timeline hr {
+  position: absolute;
+  z-index: 1;
+}
+
 #timeline #line-mover {
   background: black;
   transition: 1s;
-}
-
-#timeline hr {
-  position: absolute;
+  z-index: 2;
 }
 
 #timeline .line {
-  width: 100%;
+  width: inherit;
   height: 1px;
   background: #000;
   position: absolute;
