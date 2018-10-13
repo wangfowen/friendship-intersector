@@ -64,6 +64,22 @@ p {
   border-radius: 50%;
   position: absolute;
   cursor: pointer;
+  z-index: 3;
+}
+
+#timeline div {
+  position: absolute;
+  z-index: 3;
+  width: 80px;
+}
+
+#timeline #line-mover {
+  background: black;
+  transition: 1s;
+}
+
+#timeline hr {
+  position: absolute;
 }
 
 #timeline .line {

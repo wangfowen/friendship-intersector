@@ -139,6 +139,22 @@ class Viz {
     }
   }
 
+  repaintLine(dayCounter) {
+    const ref = this;
+    if (dayCounter !== undefined) {
+      const $container = $('#timeline-container');
+      const $line = $('#line-mover');
+
+      const day = ref.timeline.days[dayCounter - 1];
+      const left = day.left;
+
+      $line.css({left: left + 4});
+      $container.animate({
+        scrollLeft: $line.offset().left - $container.offset().left + $container.scrollLeft()
+      });
+    }
+  }
+
   progressAnimation(ref) {
     const data = ref.timeline.getData(ref.progress);
 
@@ -146,6 +162,7 @@ class Viz {
 
     ref.repaintPoint(data.first, ref.first);
     ref.repaintPoint(data.second, ref.second);
+    ref.repaintLine(data.dayCounter);
 
     const bounds = ref.getBounds(data);
     if (ref.mapBounds != bounds) {

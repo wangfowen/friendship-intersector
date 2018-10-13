@@ -20,7 +20,8 @@ class Timeline {
     this.options = {
       segments: 4,
       boundChangeAfter: 5,
-      minutesGrouping: 5
+      minutesGrouping: 5,
+      closenessKm: 5
     };
 
     this.line;
@@ -53,20 +54,31 @@ class Timeline {
   }
 
   populateTimeline() {
-    const $timeline = $(this.timelineId);
+    const ref = this;
+    const $timeline = $(ref.timelineId);
 
-    this.days.forEach((data) => {
-      if (data.first) {
-        $timeline.append(`<span data-left="${data.left}" data-first="${data.first}" data-second="${data.second}"style="top:30%;background:#ed6498;left:${data.left}px "></span>`);
+    ref.days.forEach((data, i) => {
+      if (data.date !== undefined) {
+        $timeline.append(`<div style="top:8%;left:${data.left}px">${data.date}</div>`);
       }
-      if (data.second) {
-        $timeline.append(`<span data-left="${data.left}" data-first="${data.first}" data-second="${data.second}"style="top:60%;background:#000;left:${data.left}px"></span>`);
+
+      if (data.first !== undefined) {
+        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:30%;background:#ed6498;left:${data.left}px"></span>`);
+      }
+      if (data.second !== undefined) {
+        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:60%;background:#000;left:${data.left}px"></span>`);
+      }
+
+      if (data.intersection) {
+        $timeline.append(`<hr width="1" size="150" style="left: ${data.left + 4}px;background:red">`);
       }
     });
 
-    //TODO: should instead be progress of viz to be able to jump there
-    $(`${this.timelineId} span`).click((e) => {
-      console.log($(e.target).attr("data-left"));
+    $(`${ref.timelineId} span`).click((e) => {
+      const index = parseInt($(e.target).attr("data-index"), 10);
+      const dayCounter = parseInt($(e.target).attr("data-day"), 10);
+      ref.viz.progress = index;
+      ref.viz.repaintLine(dayCounter + 1);
     });
   }
 
@@ -149,6 +161,7 @@ class Timeline {
     let firstBounds;
     let secondBounds;
     let bothBounds;
+    let intersectSinceLast = false;
 
     while (ref.first.currIdx < ref.first.data.length - 1 ||
            ref.second.currIdx < ref.second.data.length - 1) {
@@ -205,17 +218,40 @@ class Timeline {
         ));
       }
 
+      //TODO: is it passing in null in places where it should be null?
       const firstData = ref.first.data[ref.first.currIdx];
       const secondData = ref.second.data[ref.second.currIdx];
+      intersectSinceLast = intersectSinceLast || ref.didIntersect(firstData, secondData);
       time = ref.newTime(firstData, secondData);
       const newDay = parseInt(moment(time).format("YYDDD"), 10);
       if (newDay > day) {
         dayCounter += 1;
-        //TODO: intersection code is wrong
-        ref.days.push(ref.daysObj(dayCounter, ref.first.currIdx, ref.second.currIdx, firstData === secondData));
+        let date = undefined;
+        if (moment(time).format("D") === "1") {
+          date = moment(time).format("MMM YY");
+        }
+
+        ref.processedData[ref.processedData.length - 1].dayCounter = dayCounter;
+        ref.days.push(ref.daysObj(dayCounter, ref.processedData.length, firstData, secondData, intersectSinceLast, date));
+
         day = newDay;
+        intersectSinceLast = false;
       }
     }
+  }
+
+  didIntersect(firstData, secondData) {
+    if (firstData === undefined || secondData === undefined) {
+      return false;
+    }
+
+    const ref = this;
+    const line = ref.line;
+    const startCoord = ref.latlng(firstData);
+    const endCoord = ref.latlng(secondData);
+    line.features[0].geometry.coordinates = [startCoord, endCoord];
+
+    return turf.lineDistance(line.features[0], 'kilometers') <= this.options.closenessKm;
   }
 
   dataObj(first, second, firstBounds, secondBounds, bothBounds, time) {
@@ -229,12 +265,14 @@ class Timeline {
     };
   }
 
-  daysObj(dateDiff, firstIdx, secondIdx, intersection) {
+  daysObj(dateDiff, index, firstData, secondData, intersection, date) {
     return {
       left: dateDiff * 20,
-      first: firstIdx,
-      second: secondIdx,
-      intersection: intersection
+      first: firstData,
+      second: secondData,
+      index: index,
+      intersection: intersection,
+      date: date
     };
   }
 
