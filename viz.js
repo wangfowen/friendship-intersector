@@ -24,7 +24,7 @@ class Viz {
     this.options = {
       tailTrail: 8,
       frameRate: 1,
-      intersectPause: 60,
+      intersectPause: 30,
       playing: true
     }
 
@@ -119,6 +119,11 @@ class Viz {
   }
 
   toggleOn() {
+    if (this.options.playing) {
+      $('#start').html("Start");
+    } else {
+      $('#start').html("Pause");
+    }
     this.options.playing = !this.options.playing;
   }
 
@@ -140,7 +145,7 @@ class Viz {
 
       if (intersection) {
         point.features[0].properties.color = this.intersectColor;
-        point.features[0].properties.weight = 10;
+        point.features[0].properties.weight = 8;
       } else {
         point.features[0].properties.color = set.color;
         point.features[0].properties.weight = 5;

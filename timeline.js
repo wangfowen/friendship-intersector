@@ -21,7 +21,7 @@ class Timeline {
       segments: 4,
       boundChangeAfter: 5,
       minutesGrouping: 5,
-      closenessKm: 1
+      closenessKm: 0.5
     };
 
     this.line;
