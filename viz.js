@@ -39,7 +39,7 @@ class Viz {
   }
 
   adjustFrameRate(rate) {
-    this.options.frameRate = rate;
+    this.options.frameRate = parseInt(rate, 10);
   }
 
   setTime(data) {
@@ -177,34 +177,36 @@ class Viz {
 
   progressAnimation(ref) {
     const data = ref.timeline.getData(ref.progress);
-
     ref.setTime(data);
 
-    ref.repaintPoint(data.first, ref.first, data.intersection);
-    ref.repaintPoint(data.second, ref.second, data.intersection);
-    ref.repaintLine(data.dayCounter);
+    if (data.intersection && ref.intersectCounter === 0 || !data.intersection) {
+      ref.repaintPoint(data.first, ref.first, data.intersection);
+      ref.repaintPoint(data.second, ref.second, data.intersection);
+      ref.repaintLine(data.dayCounter);
 
-    const bounds = ref.getBounds(data);
-    if (ref.mapBounds != bounds) {
-      ref.map.fitBounds(bounds, {
-        duration: 500,
-        padding: 50,
-        easing: (t) => {
-          //easeInOutQuad
-          return t<.5 ? 2*t*t : -1+(4-2*t)*t
-        }
-      });
-      ref.mapBounds = bounds;
+      const bounds = ref.getBounds(data);
+      if (ref.mapBounds != bounds) {
+        ref.map.fitBounds(bounds, {
+          duration: 500,
+          padding: 50,
+          easing: (t) => {
+            //easeInOutQuad
+            return t<.5 ? 2*t*t : -1+(4-2*t)*t
+          }
+        });
+        ref.mapBounds = bounds;
+      }
     }
 
     if (data.intersection) {
       ref.intersectCounter += 1;
       if (ref.intersectCounter >= ref.options.intersectPause) {
         ref.intersectCounter = 0;
-        ref.progress += 1;
+        ref.progress += ref.options.frameRate;
       }
     } else {
-      ref.progress += 1;
+      ref.intersectCounter = 0;
+      ref.progress += ref.options.frameRate;
     }
   }
 
