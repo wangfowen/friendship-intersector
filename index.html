@@ -18,10 +18,11 @@
                 </div>
                 <p>Welcome to the <b>Friendship Intersector</b>, a tool for discovering where you and a friend have intersected, whether on purpose or accidentally. Just upload you and your friends' Google <a href="https://google.com/locationhistory" target="_blank">Location History</a> data and the magic happens. <i>Don't worry&mdash;all processing and visualization happens directly on this page and is not saved anywhere by me (you can verify by looking at <a target="_blank"
                     href="https://github.com/wangfowen/location-history-visualizer">the code</a>), so rest assured that nobody is able to access your Location History but you... and Google, of course.</i></p>
-                <p>To start off, you'll both need to go to <a href="https://google.com/takeout" target="_blank">Google Takeout</a> to download your Location History data: on that page, deselect everything except Location History by clicking "Select none" and then reselecting "Location History" with the JSON format. Then hit "Next" and, finally, click "Create archive". Once the archive has been created, click "Download". Unzip the downloaded file. <b>Then, select your <i>LocationHistory.json</i> from the unzipped
-                  folder to upload here.</b></p>
-                <p>First person's file (pink): <input name="file-1" type="file" id="file-1"></input></p>
-                <p>Second person's file (black): <input name="file-2" type="file" id="file-2"></input></p>
+                <p>To start off, you'll both need to go to <a href="https://google.com/takeout" target="_blank">Google Takeout</a> to download your Location History data: on that page, deselect everything except Location History by clicking "Select none" and then reselecting "Location History" with the JSON format. Then hit "Next" and, finally, click "Create archive". Once the archive has been created, click "Download". Unzip the downloaded file. <b>Then, rename <i>LocationHistory.json</i> from the unzipped
+                  folder so you know whose is whose, then upload here.</b></p>
+                <p>First person's file (orange): <input name="file-1" type="file" id="file-1"></input></p>
+                <p>Second person's file (blue): <input name="file-2" type="file" id="file-2"></input></p>
+                <p id="attribution">Based off of <a target="_blank" href="https://github.com/theopolisme/location-history-visualizer">Location History Visualizer</a></p>
             </div>
 
             <!-- Shown in interim while processing is in progress -->
@@ -57,11 +58,11 @@
             <input type="range" min="1" max="8" value="1" id="frame" class="control">
           </div>
           <div>
-            <label for="first">Watch first</label>
+            <label for="first">Watch first <span id="file-1-name"></span></label>
             <input type="checkbox" checked="checked" id="first" class="control">
           </div>
           <div>
-            <label for="second">Watch second</label>
+            <label for="second">Watch second <span id="file-2-name"></span></label>
             <input type="checkbox" checked="checked" id="second" class="control">
           </div>
         </div>

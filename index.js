@@ -63,6 +63,9 @@ var timeline;
       return;
     }
 
+    $('#file-1-name').html(`(${files[0].name})`);
+    $('#file-2-name').html(`(${files[1].name})`);
+
     // First, change tabs
     $('body').addClass('working');
     $('#intro').addClass('hidden');

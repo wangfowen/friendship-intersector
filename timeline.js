@@ -21,7 +21,7 @@ class Timeline {
       segments: 4,
       boundChangeAfter: 5,
       minutesGrouping: 5,
-      closenessKm: 5
+      closenessKm: 1
     };
 
     this.line;
@@ -63,10 +63,10 @@ class Timeline {
       }
 
       if (data.first !== undefined) {
-        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:30%;background:#ed6498;left:${data.left}px"></span>`);
+        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:30%;background:#F87531;left:${data.left}px"></span>`);
       }
       if (data.second !== undefined) {
-        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:60%;background:#000;left:${data.left}px"></span>`);
+        $timeline.append(`<span data-day="${i}" data-left="${data.left}" data-index="${data.index}" style="top:60%;background:#00BFFF;left:${data.left}px"></span>`);
       }
 
       if (data.intersection) {
@@ -156,18 +156,22 @@ class Timeline {
     ref.initLine();
 
     let time = ref.newTime(ref.first.data[0], ref.second.data[0]);
+    const ms = ref.options.minutesGrouping * 60 * 1000;
+
     let day = parseInt(moment(time).format("YYDDD"), 10);
     let dayCounter = 0;
-    const ms = ref.options.minutesGrouping * 60 * 1000;
+    let intersectSinceLast = false;
+    let firstDayPoint = undefined;
+    let secondDayPoint = undefined;
 
     let boundCounter = 0;
     let firstBounds;
     let secondBounds;
     let bothBounds;
-    let intersectSinceLast = false;
 
     while (ref.first.currIdx < ref.first.data.length - 1 ||
            ref.second.currIdx < ref.second.data.length - 1) {
+      //set a new bound
       if (boundCounter === 0) {
         let firstLook = [];
         let secondLook = [];
@@ -205,6 +209,9 @@ class Timeline {
 
       const firstSegments = ref.setPoint(ref.first, time, ms);
       const secondSegments = ref.setPoint(ref.second, time, ms);
+      const currFirstData = ref.first.data[ref.first.currIdx];
+      const currSecondData = ref.second.data[ref.second.currIdx];
+      const currIntersecting = ref.didIntersect(currFirstData, currSecondData);
 
       const count = Math.max(firstSegments.length, secondSegments.length);
       for (let i = 0; i < count; i++) {
@@ -217,16 +224,19 @@ class Timeline {
           firstBounds,
           secondBounds,
           bothBounds,
-          time
+          time,
+          currIntersecting
         ));
       }
 
-      //benchmarks for actual timeline gui
-      //TODO: something is wrong here -- showing intersects when no points showing up for day
-      //and there are actually points on times it says there's none
-      const firstData = firstSegments[0];
-      const secondData = secondSegments[0];
-      intersectSinceLast = intersectSinceLast || ref.didIntersect(firstData, secondData);
+      //new day to add to actual timeline gui
+      if (firstDayPoint === undefined) {
+        firstDayPoint = firstSegments[0];
+      }
+      if (secondDayPoint === undefined) {
+        secondDayPoint = secondSegments[0];
+      }
+      intersectSinceLast = intersectSinceLast || currIntersecting;
       const newDay = parseInt(moment(time).format("YYDDD"), 10);
       if (newDay > day) {
         dayCounter += 1;
@@ -236,13 +246,16 @@ class Timeline {
         }
 
         ref.processedData[ref.processedData.length - 1].dayCounter = dayCounter;
-        ref.days.push(ref.daysObj(dayCounter, ref.processedData.length, firstData, secondData, intersectSinceLast, date));
+        ref.days.push(ref.daysObj(dayCounter, ref.processedData.length, firstDayPoint, secondDayPoint, intersectSinceLast, date));
 
+        //reset for next day
         day = newDay;
         intersectSinceLast = false;
+        firstDayPoint = undefined;
+        secondDayPoint = undefined;
       }
 
-      time = ref.newTime(ref.first.data[ref.first.currIdx], ref.second.data[ref.second.currIdx]);
+      time = ref.newTime(currFirstData, currSecondData);
     }
   }
 
@@ -260,14 +273,15 @@ class Timeline {
     return turf.lineDistance(line.features[0], 'kilometers') <= this.options.closenessKm;
   }
 
-  dataObj(first, second, firstBounds, secondBounds, bothBounds, time) {
+  dataObj(first, second, firstBounds, secondBounds, bothBounds, time, intersection) {
     return {
       first: first,
       second: second,
       firstBounds: firstBounds,
       secondBounds: secondBounds,
       bothBounds: bothBounds,
-      time: time
+      time: time,
+      intersection: intersection
     };
   }
 

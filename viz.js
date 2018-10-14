@@ -3,17 +3,20 @@ class Viz {
     this.map = map;
     this.timeline = timeline;
 
+    this.intersectColor = "#000";
     this.first = {
       points: [],
       prevCoord: [],
       pointProgress: 0,
-      name: "point-1"
+      name: "point-1",
+      color: "#F87531"
     };
     this.second = {
       points: [],
       prevCoord: [],
       pointProgress: 0,
-      name: "point-2"
+      name: "point-2",
+      color: "#00BFFF"
     };
 
     this.watch = "both";
@@ -59,7 +62,10 @@ class Viz {
       "type": "FeatureCollection",
       "features": [{
         "type": "Feature",
-        "properties": {},
+        "properties": {
+          'color': color,
+          'weight': 5
+        },
         "geometry": {
           "type": "LineString",
           "coordinates": [
@@ -78,8 +84,8 @@ class Viz {
         'data': point
       },
       'paint': {
-        'line-width': 5,
-        'line-color': `#${color}`,
+        'line-width': ['get', 'weight'],
+        'line-color': ['get', 'color'],
         'line-opacity': .8
       }
     });
@@ -100,9 +106,8 @@ class Viz {
     //initialize points on map
     const data = c.timeline.getInitData();
     for (let i = 0; i < c.options.tailTrail; i++) {
-      c.first.points.push(c.initPoint(data.first, c.pointName(c.first.name, i), "ed6498"));
-      //TODO: change this color to be something more pleasant
-      c.second.points.push(c.initPoint(data.second, c.pointName(c.second.name, i), "000"));
+      c.first.points.push(c.initPoint(data.first, c.pointName(c.first.name, i), c.first.color));
+      c.second.points.push(c.initPoint(data.second, c.pointName(c.second.name, i), c.second.color));
     }
 
     c.first.prevCoord = data.first;
@@ -127,9 +132,18 @@ class Viz {
     this.watch = "second";
   }
 
-  repaintPoint(coord, set) {
+  repaintPoint(coord, set, intersection) {
     if (coord) {
       const point = set.points[set.pointProgress];
+
+      if (intersection) {
+        point.features[0].properties.color = this.intersectColor;
+        point.features[0].properties.weight = 10;
+      } else {
+        point.features[0].properties.color = set.color;
+        point.features[0].properties.weight = 5;
+
+      }
 
       point.features[0].geometry.coordinates = [set.prevCoord, coord];
       this.map.getSource(this.pointName(set.name, set.pointProgress)).setData(set.points[set.pointProgress]);
@@ -160,8 +174,8 @@ class Viz {
 
     ref.setTime(data);
 
-    ref.repaintPoint(data.first, ref.first);
-    ref.repaintPoint(data.second, ref.second);
+    ref.repaintPoint(data.first, ref.first, data.intersection);
+    ref.repaintPoint(data.second, ref.second, data.intersection);
     ref.repaintLine(data.dayCounter);
 
     const bounds = ref.getBounds(data);
