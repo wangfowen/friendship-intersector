@@ -24,6 +24,7 @@ class Viz {
     this.options = {
       tailTrail: 8,
       frameRate: 1,
+      intersectPause: 60,
       playing: true
     }
 
@@ -34,6 +35,7 @@ class Viz {
     this.mapBounds;
     this.time;
     this.progress = 0;
+    this.intersectCounter = 0;
   }
 
   adjustFrameRate(rate) {
@@ -142,7 +144,6 @@ class Viz {
       } else {
         point.features[0].properties.color = set.color;
         point.features[0].properties.weight = 5;
-
       }
 
       point.features[0].geometry.coordinates = [set.prevCoord, coord];
@@ -191,7 +192,15 @@ class Viz {
       ref.mapBounds = bounds;
     }
 
-    ref.progress += 1;
+    if (data.intersection) {
+      ref.intersectCounter += 1;
+      if (ref.intersectCounter >= ref.options.intersectPause) {
+        ref.intersectCounter = 0;
+        ref.progress += 1;
+      }
+    } else {
+      ref.progress += 1;
+    }
   }
 
   animate(ref) {

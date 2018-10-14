@@ -209,14 +209,13 @@ class Timeline {
 
       const firstSegments = ref.setPoint(ref.first, time, ms);
       const secondSegments = ref.setPoint(ref.second, time, ms);
-      const currFirstData = ref.first.data[ref.first.currIdx];
-      const currSecondData = ref.second.data[ref.second.currIdx];
-      const currIntersecting = ref.didIntersect(currFirstData, currSecondData);
 
       const count = Math.max(firstSegments.length, secondSegments.length);
       for (let i = 0; i < count; i++) {
         const firstPoint = firstSegments[i];
         const secondPoint = secondSegments[i];
+        const currIntersecting = ref.didIntersect(firstPoint, secondPoint);
+        intersectSinceLast = intersectSinceLast || currIntersecting;
 
         ref.processedData.push(ref.dataObj(
           firstPoint,
@@ -236,7 +235,6 @@ class Timeline {
       if (secondDayPoint === undefined) {
         secondDayPoint = secondSegments[0];
       }
-      intersectSinceLast = intersectSinceLast || currIntersecting;
       const newDay = parseInt(moment(time).format("YYDDD"), 10);
       if (newDay > day) {
         dayCounter += 1;
@@ -255,7 +253,7 @@ class Timeline {
         secondDayPoint = undefined;
       }
 
-      time = ref.newTime(currFirstData, currSecondData);
+      time = ref.newTime(ref.first.data[ref.first.currIdx], ref.second.data[ref.second.currIdx]);
     }
   }
 
