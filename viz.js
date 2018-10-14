@@ -170,7 +170,7 @@ class Viz {
 
       $line.css({left: left + 4});
       $container.animate({
-        scrollLeft: $line.offset().left - $container.offset().left + $container.scrollLeft()
+        scrollLeft: left - 20
       });
     }
   }

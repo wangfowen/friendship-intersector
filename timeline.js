@@ -18,7 +18,7 @@ class Timeline {
     this.days = [];
 
     this.options = {
-      segments: 4,
+      segments: 8,
       boundChangeAfter: 5,
       minutesGrouping: 5,
       closenessKm: 0.5
@@ -79,7 +79,9 @@ class Timeline {
       const index = parseInt($(e.target).attr("data-index"), 10);
       const dayCounter = parseInt($(e.target).attr("data-day"), 10);
       ref.viz.progress = index;
+      //subtract 1 on other side
       ref.viz.repaintLine(dayCounter + 1);
+      ref.viz.setTime(ref.getData(index));
     });
 
     $timeline.width($spans.last().offset().left + 30);
